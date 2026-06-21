@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultimate Smart Calculator</title>
+
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Segoe UI',sans-serif;
+}
+
+body{
+min-height:100vh;
+display:flex;
+justify-content:center;
+align-items:center;
+background:linear-gradient(135deg,#0f172a,#1e293b);
+padding:20px;
+transition:.5s;
+}
+
+body.light{
+background:linear-gradient(135deg,#f1f5f9,#dbeafe);
+}
+
+.calculator{
+width:420px;
+background:rgba(255,255,255,0.08);
+backdrop-filter:blur(15px);
+padding:20px;
+border-radius:25px;
+animation:rgbGlow 5s linear infinite;
+}
+
+@keyframes rgbGlow{
+0%{box-shadow:0 0 25px red;}
+25%{box-shadow:0 0 25px blue;}
+50%{box-shadow:0 0 25px lime;}
+75%{box-shadow:0 0 25px yellow;}
+100%{box-shadow:0 0 25px red;}
+}
+
+.top{
+display:flex;
+justify-content:space-between;
+color:white;
+margin-bottom:10px;
+font-size:14px;
+}
+
+.display{
+width:100%;
+height:80px;
+border:none;
+outline:none;
+border-radius:15px;
+background:#111827;
+color:#00ff88;
+font-size:2rem;
+text-align:right;
+padding:15px;
+}
+
+.preview{
+color:#cbd5e1;
+text-align:right;
+padding:6px;
+min-height:25px;
+}
+
+.buttons{
+display:grid;
+grid-template-columns:repeat(5,1fr);
+gap:8px;
+margin-top:10px;
+}
+
+button{
+height:58px;
+border:none;
+border-radius:14px;
+cursor:pointer;
+font-size:1.1rem;
+transition:.3s;
+}
+
+button:hover{
+transform:scale(1.05);
+}
+
+.num{
+background:#334155;
+color:white;
+}
+
+.op{
+background:#f59e0b;
+color:white;
+}
+
+.special{
+background:#ef4444;
+color:white;
+}
+
+.equal{
+background:#10b981;
+color:white;
+}
+
+.panel{
+margin-top:15px;
+color:white;
+font-size:13px;
+max-height:140px;
+overflow:auto;
+border-top:1px solid rgba(255,255,255,.2);
+padding-top:10px;
+}
+
+h4{
+margin:8px 0;
+}
+</style>
+</head>
+<body>
+
+<div class="calculator">
+
+<div class="top">
+<div id="clock">00:00:00</div>
+<div>Smart Calculator 🚀</div>
+</div>
+
+<input id="display" class="display" readonly>
+<div id="preview" class="preview"></div>
+
+<div class="buttons">
+
+<button class="special" onclick="clearDisplay()">C</button>
+<button class="special" onclick="deleteLast()">⌫</button>
+<button class="op" onclick="sqrt()">√</button>
+<button class="op" onclick="square()">x²</button>
+<button class="op" onclick="append('/')">÷</button>
+
+<button class="num" onclick="append('7')">7</button>
+<button class="num" onclick="append('8')">8</button>
+<button class="num" onclick="append('9')">9</button>
+<button class="op" onclick="append('*')">×</button>
+<button class="op" onclick="append('%')">%</button>
+
+<button class="num" onclick="append('4')">4</button>
+<button class="num" onclick="append('5')">5</button>
+<button class="num" onclick="append('6')">6</button>
+<button class="op" onclick="append('-')">−</button>
+<button class="op" onclick="append('3.14159')">π</button>
+
+<button class="num" onclick="append('1')">1</button>
+<button class="num" onclick="append('2')">2</button>
+<button class="num" onclick="append('3')">3</button>
+<button class="op" onclick="append('+')">+</button>
+<button class="equal" onclick="calculate()">=</button>
+
+<button class="num" onclick="append('0')">0</button>
+<button class="num" onclick="append('.')">.</button>
+<button class="op" onclick="toggleTheme()">🌙</button>
+<button class="op" onclick="startVoice()">🎤</button>
+<button class="op" onclick="toggleMusic()">🎵</button>
+
+<button class="op" onclick="copyResult()">📋</button>
+<button class="op" onclick="randomNum()">🎲</button>
+<button class="op" onclick="showStats()">📊</button>
+<button class="op" onclick="showAchievements()">🏆</button>
+<button class="op" onclick="clearHistory()">🗑️</button>
+
+</div>
+
+<div class="panel">
+<h4>📜 History</h4>
+<div id="history"></div>
+
+<h4>📊 Statistics</h4>
+<div id="stats"></div>
+
+<h4>🏆 Achievements</h4>
+<div id="achievements"></div>
+</div>
+
+</div>
+
+<script>
+const display=document.getElementById("display");
+const preview=document.getElementById("preview");
+const historyBox=document.getElementById("history");
+
+let calculations=0;
+let achievements=[];
+let musicPlaying=false;
+let audioCtx;
+
+function beep(freq=500){
+try{
+if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+const osc=audioCtx.createOscillator();
+const gain=audioCtx.createGain();
+osc.connect(gain);
+gain.connect(audioCtx.destination);
+osc.frequency.value=freq;
+osc.start();
+gain.gain.exponentialRampToValueAtTime(
+0.0001,
+audioCtx.currentTime+0.08
+);
+osc.stop(audioCtx.currentTime+0.08);
+}catch(e){}
+}
+
+function append(v){
+beep();
+display.value+=v;
+
+try{
+preview.innerHTML="= "+eval(display.value);
+}catch{
+preview.innerHTML="";
+}
+}
+
+function clearDisplay(){
+beep();
+display.value="";
+preview.innerHTML="";
+}
+
+function deleteLast(){
+beep();
+display.value=display.value.slice(0,-1);
+}
+
+function calculate(){
+beep(800);
+
+try{
+let exp=display.value;
+let result=eval(exp);
+
+calculations++;
+
+historyBox.innerHTML=
+`<div>${exp} = ${result}</div>`+
+historyBox.innerHTML;
+
+if(calculations===1)
+achievements.push("🏆 First Calculation");
+
+if(calculations===10)
+achievements.push("🏆 10 Calculations Completed");
+
+if(result===777)
+alert("🎰 Jackpot!");
+
+if(result===12345)
+alert("🚀 Secret Mode Activated!");
+
+if(result>1000)
+alert("🎉 Huge Result!");
+
+display.value=result;
+preview.innerHTML="";
+updateStats();
+
+}catch{
+display.value="Error";
+}
+}
+
+function sqrt(){
+if(display.value)
+display.value=Math.sqrt(Number(display.value));
+}
+
+function square(){
+if(display.value)
+display.value=Math.pow(Number(display.value),2);
+}
+
+function toggleTheme(){
+document.body.classList.toggle("light");
+}
+
+function randomNum(){
+display.value=Math.floor(Math.random()*1000);
+}
+
+function copyResult(){
+navigator.clipboard.writeText(display.value);
+alert("📋 Result Copied");
+}
+
+function updateStats(){
+document.getElementById("stats").innerHTML=
+"Total Calculations: "+calculations;
+}
+
+function showStats(){
+updateStats();
+}
+
+function showAchievements(){
+document.getElementById("achievements").innerHTML=
+achievements.join("<br>");
+}
+
+function clearHistory(){
+historyBox.innerHTML="";
+}
+
+setInterval(()=>{
+document.getElementById("clock").innerHTML=
+new Date().toLocaleTimeString();
+},1000);
+
+document.addEventListener("keydown",e=>{
+if("0123456789+-*/.%".includes(e.key))
+append(e.key);
+else if(e.key==="Enter")
+calculate();
+else if(e.key==="Backspace")
+deleteLast();
+});
+
+function startVoice(){
+if('webkitSpeechRecognition' in window){
+
+const recognition=new webkitSpeechRecognition();
+recognition.start();
+
+recognition.onresult=function(event){
+
+let text=event.results[0][0].transcript;
+
+text=text
+.replace(/plus/gi,'+')
+.replace(/minus/gi,'-')
+.replace(/times|into/gi,'*')
+.replace(/divide by/gi,'/');
+
+display.value=text;
+};
+}else{
+alert("Voice Recognition Not Supported");
+}
+}
+
+let musicOsc=null;
+
+function toggleMusic(){
+if(!audioCtx)
+audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+
+if(!musicPlaying){
+musicOsc=audioCtx.createOscillator();
+const gain=audioCtx.createGain();
+
+musicOsc.connect(gain);
+gain.connect(audioCtx.destination);
+
+musicOsc.frequency.value=220;
+gain.gain.value=0.02;
+
+musicOsc.start();
+musicPlaying=true;
+}else{
+musicOsc.stop();
+musicPlaying=false;
+}
+}
+</script>
+
+</body>
+</html>
